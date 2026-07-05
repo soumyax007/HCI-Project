@@ -4,8 +4,8 @@ import '../theme/app_theme.dart';
 
 // ── Language name lookup (same codes as kScanLanguages) ───────────────────────
 const _kLangNames = {
-  'hi': 'Hindi',   'bn': 'Bengali', 'mr': 'Marathi',
-  'ta': 'Tamil',   'te': 'Telugu',  'pa': 'Punjabi',
+  'hi': 'Hindi',   'bn': 'Bengali',
+  'ta': 'Tamil',   'te': 'Telugu',
   'en': 'English',
 };
 String _langName(String code) => _kLangNames[code] ?? code.toUpperCase();

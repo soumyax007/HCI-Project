@@ -22,8 +22,7 @@ class TranslationService {
   static const _endpoint =
       'https://soumyax007-hci-translator-sarvam.hf.space/translate';
 
-  static const _timeout = Duration(seconds: 20);
-
+static const _timeout = Duration(seconds: 60);
   final http.Client _client;
 
   /// Sends [medicines] to be translated into [targetLanguage].

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import '../theme/app_theme.dart';
 import 'signup_screen.dart';
+import 'login_screen.dart';
 
 class LanguageOption {
   final String nativeLabel;
@@ -9,14 +10,13 @@ class LanguageOption {
   const LanguageOption(this.nativeLabel, this.englishLabel, this.code);
 }
 
+// Marathi (mr) and Punjabi (pa) removed.
 const List<LanguageOption> kLanguages = [
-  LanguageOption('English', '', 'en'),
-  LanguageOption('हिंदी', 'Hindi', 'hi'),
-  LanguageOption('বাংলা', 'Bengali', 'bn'),
-  LanguageOption('मराठी', 'Marathi', 'mr'),
-  LanguageOption('தமிழ்', 'Tamil', 'ta'),
-  LanguageOption('తెలుగు', 'Telugu', 'te'),
-  LanguageOption('Punjabi', 'Punjabi', 'pa'),
+  LanguageOption('English',  '',        'en'),
+  LanguageOption('हिंदी',    'Hindi',   'hi'),
+  LanguageOption('বাংলা',    'Bengali', 'bn'),
+  LanguageOption('தமிழ்',    'Tamil',   'ta'),
+  LanguageOption('తెలుగు',   'Telugu',  'te'),
 ];
 
 class LanguageSelectionScreen extends StatefulWidget {
@@ -51,44 +51,31 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: 64, height: 64,
                 decoration: BoxDecoration(
                   color: AppColors.sage,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(
-                  Icons.spa_outlined,
-                  color: Colors.white,
-                  size: 30,
-                ),
+                child: const Icon(Icons.spa_outlined, color: Colors.white, size: 30),
               ),
               const SizedBox(height: 16),
               Text('MedHelp', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 6),
-              Text(
-                'Your trusted medication companion',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              Text('Your trusted medication companion',
+                  style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 32),
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  'Choose your reading language',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
+                child: Text('Choose your reading language',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600,
+                        color: AppColors.textDark)),
               ),
               const SizedBox(height: 4),
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  'अपनी भाषा चुनें · আপনার ভাষা বেছে নিন',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
+                child: Text('अपनी भाषा चुनें · আপনার ভাষা বেছে নিন',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
               ),
               const SizedBox(height: 18),
               ...kLanguages.map((lang) {
@@ -111,6 +98,25 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                   ),
                   child: const Text('Continue'),
                 ),
+              ),
+              const SizedBox(height: 16),
+              // Already have an account? → Login
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Already have an account? ',
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    ),
+                    child: const Text('Log in',
+                        style: TextStyle(
+                            color: AppColors.sageDark,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                  ),
+                ],
               ),
             ],
           ),

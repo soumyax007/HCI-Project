@@ -1,91 +1,71 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_settings.dart';
 
-/// Wraps Supabase auth + profile table operations.
+/// Wraps Supabase auth + profile/prescription table operations.
 ///
-/// Auth strategy: we use email/password where the email is derived from
-/// the mobile number as  {mobile}@medhelp.in  so the patient never has to
-/// type an email address — they only ever see "mobile number" and "password".
+/// Auth strategy: real email + password — no fake mobile-derived emails.
+/// The Supabase auth UUID (auth.users.id) is used as the primary key for
+/// every user-linked table (profiles, prescriptions, reminders).
 class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
 
   SupabaseClient get _db => Supabase.instance.client;
 
-  // ── helpers ───────────────────────────────────────────────────────────────
+  // ── Sign Up ───────────────────────────────────────────────────────────────
 
-  /// Converts a mobile number to a fake email for Supabase auth.
-  String _toEmail(String mobile) {
-    final digits = mobile.replaceAll(RegExp(r'\D'), '');
-    return '$digits@medhelp.in';
-  }
-
-  // ── sign up ───────────────────────────────────────────────────────────────
-
-  /// Creates a Supabase auth account, inserts a profile row, and saves
-  /// everything to [AppSettings] + shared_preferences.
-  ///
-  /// Throws a [String] error message on failure.
+  /// Creates a Supabase auth account with a real email address, then inserts
+  /// a profile row linked via the auth UUID.
   Future<void> signUp({
+    required String email,
+    required String password,
     required String name,
     required String age,
     required String mobile,
-    required String password,
     required String languageCode,
     String caregiverName   = '',
     String caregiverMobile = '',
   }) async {
-    final email = _toEmail(mobile);
-
-    // 1. Create auth account
-    final res = await _db.auth.signUp(
-      email: email,
-      password: password,
-    );
+    // 1. Create auth account with real email
+    final res = await _db.auth.signUp(email: email, password: password);
 
     final uid = res.user?.id;
     if (uid == null) throw 'Sign up failed — please try again.';
 
-    // 2. Insert profile row
+    // 2. Insert profile row — id = auth UUID
     await _db.from('profiles').insert({
-      'id':               uid,
-      'name':             name,
-      'age':              int.tryParse(age) ?? 0,
-      'mobile':           mobile,
+      'id':                 uid,
+      'name':               name,
+      'age':                int.tryParse(age) ?? 0,
+      'mobile':             mobile,
       'preferred_language': languageCode,
-      'caregiver_name':   caregiverName,
-      'caregiver_mobile': caregiverMobile,
+      'caregiver_name':     caregiverName,
+      'caregiver_mobile':   caregiverMobile,
     });
 
-    // 3. Persist to AppSettings
-    final s = AppSettings.instance;
-    s.userId          = uid;
-    s.name            = name;
-    s.age             = age;
-    s.mobile          = mobile;
-    s.languageCode    = languageCode;
-    s.caregiverName   = caregiverName;
-    s.caregiverMobile = caregiverMobile;
-    s.isLoggedIn      = true;
-    await s.save();
+    // 3. Persist to AppSettings + shared_preferences
+    _applyToSettings(
+      uid: uid, name: name, age: age, mobile: mobile,
+      languageCode: languageCode,
+      caregiverName: caregiverName, caregiverMobile: caregiverMobile,
+    );
+    await AppSettings.instance.save();
   }
 
-  // ── sign in ───────────────────────────────────────────────────────────────
+  // ── Sign In ───────────────────────────────────────────────────────────────
 
-  /// Signs in with mobile + password and loads profile into [AppSettings].
+  /// Signs in with email + password and loads the profile into [AppSettings].
   Future<void> signIn({
-    required String mobile,
+    required String email,
     required String password,
   }) async {
-    final email = _toEmail(mobile);
-
     final res = await _db.auth.signInWithPassword(
       email: email,
       password: password,
     );
 
     final uid = res.user?.id;
-    if (uid == null) throw 'Login failed — check your mobile number and password.';
+    if (uid == null) throw 'Login failed — check your email and password.';
 
     // Load profile from DB
     final row = await _db
@@ -94,30 +74,29 @@ class AuthService {
         .eq('id', uid)
         .single();
 
-    final s = AppSettings.instance;
-    s.userId          = uid;
-    s.name            = row['name'] as String? ?? '';
-    s.age             = row['age']?.toString() ?? '';
-    s.mobile          = row['mobile'] as String? ?? '';
-    s.languageCode    = row['preferred_language'] as String? ?? 'en';
-    s.caregiverName   = row['caregiver_name'] as String? ?? '';
-    s.caregiverMobile = row['caregiver_mobile'] as String? ?? '';
-    s.isLoggedIn      = true;
-    await s.save();
+    _applyToSettings(
+      uid:            uid,
+      name:           row['name']               as String? ?? '',
+      age:            row['age']?.toString()     ?? '',
+      mobile:         row['mobile']              as String? ?? '',
+      languageCode:   row['preferred_language']  as String? ?? 'en',
+      caregiverName:  row['caregiver_name']      as String? ?? '',
+      caregiverMobile:row['caregiver_mobile']    as String? ?? '',
+    );
+    await AppSettings.instance.save();
   }
 
-  // ── sign out ──────────────────────────────────────────────────────────────
+  // ── Sign Out ──────────────────────────────────────────────────────────────
 
   Future<void> signOut() async {
     await _db.auth.signOut();
     await AppSettings.instance.clear();
   }
 
-  // ── save prescription ─────────────────────────────────────────────────────
+  // ── Save Prescription ─────────────────────────────────────────────────────
 
-  /// Saves a completed scan+translation to the prescriptions table.
-  /// Returns the UUID of the newly inserted row so the caller can prevent
-  /// duplicate saves (store the ID and refuse a second save for the same scan).
+  /// Inserts a prescription row owned by the current auth user.
+  /// Returns the UUID of the new row (used to prevent duplicate saves).
   Future<String> savePrescription({
     required List<Map<String, dynamic>> medicines,
     required List<Map<String, dynamic>> translatedResults,
@@ -127,7 +106,7 @@ class AuthService {
     if (uid.isEmpty) throw 'Not logged in.';
 
     final row = await _db.from('prescriptions').insert({
-      'patient_id':          uid,
+      'user_id':             uid,          // FK → auth.users.id
       'medicines':           medicines,
       'translated_result':   translatedResults,
       'translated_language': targetLanguage,
@@ -136,7 +115,7 @@ class AuthService {
     return row['id'] as String;
   }
 
-  // ── prescription history ──────────────────────────────────────────────────
+  // ── Prescription History ──────────────────────────────────────────────────
 
   /// Returns all prescriptions for the current user, newest first.
   Future<List<Map<String, dynamic>>> getPrescriptions() async {
@@ -146,9 +125,31 @@ class AuthService {
     final data = await _db
         .from('prescriptions')
         .select()
-        .eq('patient_id', uid)
+        .eq('user_id', uid)         // uses user_id, not patient_id
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(data as List);
+  }
+
+  // ── Internal helpers ──────────────────────────────────────────────────────
+
+  void _applyToSettings({
+    required String uid,
+    required String name,
+    required String age,
+    required String mobile,
+    required String languageCode,
+    required String caregiverName,
+    required String caregiverMobile,
+  }) {
+    final s = AppSettings.instance;
+    s.userId          = uid;
+    s.name            = name;
+    s.age             = age;
+    s.mobile          = mobile;
+    s.languageCode    = languageCode;
+    s.caregiverName   = caregiverName;
+    s.caregiverMobile = caregiverMobile;
+    s.isLoggedIn      = true;
   }
 }

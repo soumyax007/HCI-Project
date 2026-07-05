@@ -28,12 +28,10 @@ enum _Step { chooseMethod, imagePreview, ocrResult, manualForm }
 
 // ── language options (same list as old TranslateScreen) ─────────────────────
 const List<LanguageOption> kScanLanguages = [
-  LanguageOption('हिंदी',   'Hindi',   'hi'),
-  LanguageOption('বাংলা',   'Bengali', 'bn'),
-  LanguageOption('मराठी',   'Marathi', 'mr'),
-  LanguageOption('தமிழ்',   'Tamil',   'ta'),
-  LanguageOption('తెలుగు',  'Telugu',  'te'),
-  LanguageOption('Punjabi', 'Punjabi', 'pa'),
+  LanguageOption('हिंदी',  'Hindi',   'hi'),
+  LanguageOption('বাংলা',  'Bengali', 'bn'),
+  LanguageOption('தமிழ்',  'Tamil',   'ta'),
+  LanguageOption('తెలుగు', 'Telugu',  'te'),
 ];
 
 class AddPrescriptionScreenState extends State<AddPrescriptionScreen> {
