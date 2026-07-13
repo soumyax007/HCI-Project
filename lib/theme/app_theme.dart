@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 
 /// MedHelp design tokens — sage green + warm cream palette.
 class AppColors {
-  static const cream = Color(0xFFF7F3EA);
-  static const cardCream = Color(0xFFEFEAE0);
-  static const sage = Color(0xFF748A66);
-  static const sageDark = Color(0xFF5E7253);
-  static const sageMuted = Color(0xFFB9C4AF);
-  static const textDark = Color(0xFF2E2B26);
-  static const textMuted = Color(0xFF8A8478);
-  static const border = Color(0xFFD9D3C3);
+  // Soft Peach / Warm White / Rose / Brown Accent palette
+  static const cream = Color(0xFFFDFBF7); // Warm White
+  static const cardCream = Color(0xFFFDEAE2); // Soft Peach
+  static const sage = Color(0xFFE59A9A); // Rose
+  static const sageDark = Color(0xFF8B5A4B); // Brown Accent
+  static const sageMuted = Color(0xFFF2CDCD); // Muted Rose
+  static const textDark = Color(0xFF3E2723); // Dark Brown
+  static const textMuted = Color(0xFF8D6E63); // Muted Brown
+  static const border = Color(0xFFE0D4D0);
   static const danger = Color(0xFFB5564B);
   static const dangerBg = Color(0xFFF3E2DE);
   static const warning = Color(0xFFD9A357);
@@ -22,7 +23,7 @@ class AppTheme {
       fontFamily: 'Inter',
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.sage,
-        background: AppColors.cream,
+        surface: AppColors.cream,
       ),
       textTheme: const TextTheme(
         // Serif headings, matching the "MedHelp" / "Add Prescription" titles
@@ -53,7 +54,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(56),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
           ),
           textStyle: const TextStyle(
             fontSize: 16,
@@ -69,7 +70,7 @@ class AppTheme {
           vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,
         ),
         hintStyle: const TextStyle(color: AppColors.textMuted),

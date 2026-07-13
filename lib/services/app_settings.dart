@@ -2,9 +2,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// App-wide singleton that holds the current user's data in memory and
 /// persists it to shared_preferences so the app survives restarts.
-///
-/// Read by: SOS (caregiverMobile), Scan page (languageCode),
-/// Profile (name/age/mobile), MainShell (isLoggedIn).
 class AppSettings {
   AppSettings._();
   static final AppSettings instance = AppSettings._();
@@ -29,7 +26,6 @@ class AppSettings {
   static const _kCaregiverMobile = 'caregiver_mobile';
   static const _kIsLoggedIn      = 'is_logged_in';
 
-  /// Called at app start (main.dart) to restore a previous session.
   Future<void> loadFromPrefs() async {
     final p = await SharedPreferences.getInstance();
     userId          = p.getString(_kUserId)          ?? '';
@@ -42,7 +38,6 @@ class AppSettings {
     isLoggedIn      = p.getBool(_kIsLoggedIn)        ?? false;
   }
 
-  /// Saves all fields — call after signup / profile update.
   Future<void> save() async {
     final p = await SharedPreferences.getInstance();
     await p.setString(_kUserId,          userId);
@@ -55,12 +50,11 @@ class AppSettings {
     await p.setBool(_kIsLoggedIn,        isLoggedIn);
   }
 
-  /// Clears everything — called on logout.
   Future<void> clear() async {
-    userId = name = age = mobile = languageCode = '';
+    userId = name = age = mobile = '';
+    languageCode = 'en';
     caregiverName = caregiverMobile = '';
     isLoggedIn = false;
-    languageCode = 'en';
     final p = await SharedPreferences.getInstance();
     await p.clear();
   }

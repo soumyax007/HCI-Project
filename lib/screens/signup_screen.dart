@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
-import 'language_selection_screen.dart';
 import 'main_shell.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -43,28 +44,56 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  String _labelFor(String code) {
-    final match = kLanguages.firstWhere(
-        (l) => l.code == code, orElse: () => kLanguages.first);
-    return match.englishLabel.isEmpty ? match.nativeLabel : match.englishLabel;
-  }
+
 
   Future<void> _createAccount() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() { _isLoading = true; _errorMsg = null; });
 
     try {
+      // Step 1: Generate OTP and send via Resend (Commented out for now)
+      /*
+      final otp = (100000 + DateTime.now().millisecondsSinceEpoch % 900000).toString();
+      await AuthService.instance.sendOtp(_emailCtrl.text.trim(), otp);
+      if (!mounted) return;
+      
+      // Step 2: Show OTP Dialog
+      final enteredOtp = await _showOtpDialog(otp);
+      if (enteredOtp == null || enteredOtp != otp) {
+        setState(() { _isLoading = false; _errorMsg = 'Invalid or canceled OTP.'; });
+        return;
+      }
+      */
+
       await AuthService.instance.signUp(
         email:           _emailCtrl.text.trim(),
         password:        _passwordCtrl.text,
         name:            _nameCtrl.text.trim(),
-        age:             _ageCtrl.text.trim(),
+        age:             '',
         mobile:          _mobileCtrl.text.trim(),
         languageCode:    _selectedLanguageCode,
         caregiverName:   _contactNameCtrl.text.trim(),
         caregiverMobile: _contactMobileCtrl.text.trim(),
       );
 
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (_) => false,
+      );
+    } catch (e) {
+      setState(() => _errorMsg = e.toString()
+          .replaceFirst('Exception: ', '')
+          .replaceFirst('AuthException: ', ''));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() { _isLoading = true; _errorMsg = null; });
+    try {
+      await AuthService.instance.signInWithGoogle();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainShell()),
@@ -98,10 +127,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       color: AppColors.sage,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.spa_outlined, color: Colors.white, size: 16),
+                    child: Center(
+                      child: SvgPicture.asset(
+                        'assets/SVG/medi-care-logo.svg',
+                        width: 22,
+                        height: 22,
+                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 10),
-                  Text('MedHelp', style: Theme.of(context).textTheme.titleLarge),
+                  Text('Medi Care', style: Theme.of(context).textTheme.titleLarge),
                 ]),
                 const SizedBox(height: 24),
                 const Center(
@@ -201,88 +237,40 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     return null;
                   },
                 ),
+                // ── Additional Fields ──────────────────────────────────────
                 const SizedBox(height: 18),
                 const FieldLabel('Mobile Number'),
                 TextFormField(
                   controller: _mobileCtrl,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(hintText: '98765 43210'),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  maxLength: 10,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(hintText: '9876543210', counterText: ''),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return null; // Optional? Or required? User said "if initially phone number or caregiver number or name not set so user can set it on the profile section". So it can be empty.
+                    if (v.length != 10) return 'Enter exactly 10 digits';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 18),
-                const FieldLabel('Age'),
+                const FieldLabel('Caregiver Name'),
                 TextFormField(
-                  controller: _ageCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(hintText: '68'),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  controller: _contactNameCtrl,
+                  decoration: const InputDecoration(hintText: 'e.g. Son / Daughter Name'),
                 ),
                 const SizedBox(height: 18),
-                const FieldLabel('Preferred Language'),
-                DropdownButtonFormField<String>(
-                  value: _selectedLanguageCode,
-                  decoration: const InputDecoration(),
-                  items: kLanguages
-                      .map((l) => DropdownMenuItem(
-                            value: l.code,
-                            child: Text(_labelFor(l.code)),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(
-                      () => _selectedLanguageCode = v ?? _selectedLanguageCode),
-                ),
-                const SizedBox(height: 22),
-                // ── emergency contact card ──────────────────────────────
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardCream,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RichText(
-                        text: const TextSpan(
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textDark),
-                          children: [
-                            TextSpan(text: 'Family emergency contact '),
-                            TextSpan(
-                                text: '(optional)',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w400,
-                                    color: AppColors.textMuted)),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text('Used for SOS calls and missed-dose alerts',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.textMuted)),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _contactNameCtrl,
-                        decoration: const InputDecoration(
-                          hintText: 'Contact name (e.g. Priya — daughter)',
-                          filled: true, fillColor: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _contactMobileCtrl,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          hintText: '+91 mobile number',
-                          filled: true, fillColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
+                const FieldLabel('Caregiver Mobile'),
+                TextFormField(
+                  controller: _contactMobileCtrl,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(hintText: '9876543210', counterText: ''),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return null;
+                    if (v.length != 10) return 'Enter exactly 10 digits';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -298,6 +286,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _googleSignIn,
+                    icon: const Icon(Icons.g_mobiledata, size: 28),
+                    label: const Text('Sign in with Google'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textDark,
+                      minimumSize: const Size.fromHeight(56),
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Center(
                   child: TextButton(
                     onPressed: () => Navigator.of(context).pop(),

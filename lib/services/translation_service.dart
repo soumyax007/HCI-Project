@@ -2,33 +2,22 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/translation_models.dart';
 
-/// Thrown when the translation API call fails (network, non-200, or
-/// malformed response) so the UI can show a clear, user-facing message.
 class TranslationException implements Exception {
   TranslationException(this.message);
   final String message;
-
   @override
   String toString() => message;
 }
 
-/// Talks to the teammate's Sarvam-AI-backed translation API.
-///
-/// Web-safe: uses `package:http` only, no `dart:io`, so this works on
-/// Flutter Web as well as mobile/desktop.
 class TranslationService {
   TranslationService({http.Client? client}) : _client = client ?? http.Client();
 
   static const _endpoint =
       'https://soumyax007-hci-translator-sarvam.hf.space/translate';
+  static const _timeout = Duration(seconds: 60);
 
-static const _timeout = Duration(seconds: 60);
   final http.Client _client;
 
-  /// Sends [medicines] to be translated into [targetLanguage].
-  ///
-  /// [targetLanguage] must be one of: en, hi, bn, mr, ta, te, pa.
-  /// Throws [TranslationException] on any failure.
   Future<TranslationResponse> translateMedicines({
     required String targetLanguage,
     required List<MedicineInput> medicines,

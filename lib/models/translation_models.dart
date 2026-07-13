@@ -7,16 +7,9 @@ class MedicineInput {
     required this.timing,
   });
 
-  /// e.g. "Metformin 500mg"
   final String name;
-
-  /// e.g. "OD" (once daily), "BD" (twice daily), "TDS" (thrice daily)
   final String frequency;
-
-  /// e.g. "30 days"
   final String duration;
-
-  /// e.g. "BF" (before food), "AF" (after food)
   final String timing;
 
   Map<String, dynamic> toJson() => {
@@ -33,23 +26,48 @@ class TranslatedMedicineResult {
     required this.originalName,
     required this.translated,
     required this.method,
+    required this.medicineTransliterated,
+    this.frequency = '',
+    this.timing = '',
+    this.duration = '',
   });
 
+  /// Original English medicine name e.g. "Augmentin 625mg"
   final String originalName;
+
+  /// Full translated instruction string e.g. "ऑगमेंटिन 625mg — दिन में दो बार लें..."
   final String translated;
+
+  /// Only the transliterated medicine name e.g. "ऑगमेंटिन 625mg"
+  /// This is what gets used in reminders.
+  final String medicineTransliterated;
+
+  /// Normalised English frequency e.g. "twice daily"
+  final String frequency;
+
+  /// Normalised English timing e.g. "after food"
+  final String timing;
+
+  /// Duration e.g. "5"
+  final String duration;
+
   final String method;
 
   factory TranslatedMedicineResult.fromJson(Map<String, dynamic> json) {
     return TranslatedMedicineResult(
-      originalName: json['original_name'] as String? ?? '',
-      translated: json['translated'] as String? ?? '',
-      method: json['method'] as String? ?? '',
+      originalName:           json['original_name']           as String? ?? '',
+      translated:             json['translated']              as String? ?? '',
+      medicineTransliterated: json['medicine_transliterated'] as String? ??
+          json['original_name']                               as String? ?? '',
+      frequency: json['frequency'] as String? ?? '',
+      timing:    json['timing']    as String? ?? '',
+      duration:  json['duration']  as String? ?? '',
+      method:    json['method']    as String? ?? '',
     );
   }
 }
 
-/// Full response from POST /translate:
-/// { "target_language": "hi", "results": [ {...}, {...} ] }
+/// Full response from POST /translate.
 class TranslationResponse {
   const TranslationResponse({
     required this.targetLanguage,

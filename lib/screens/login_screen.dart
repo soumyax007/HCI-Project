@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import 'main_shell.dart';
@@ -34,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await AuthService.instance.signIn(
-        email:    _emailCtrl.text.trim(),
+        emailOrPhone: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
       );
 
@@ -42,6 +43,46 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainShell()),
         (_) => false,
+      );
+    } catch (e) {
+      setState(() => _errorMsg = e.toString()
+          .replaceFirst('Exception: ', '')
+          .replaceFirst('AuthException: ', ''));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() { _isLoading = true; _errorMsg = null; });
+    try {
+      await AuthService.instance.signInWithGoogle();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (_) => false,
+      );
+    } catch (e) {
+      setState(() => _errorMsg = e.toString()
+          .replaceFirst('Exception: ', '')
+          .replaceFirst('AuthException: ', ''));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final emailOrPhone = _emailCtrl.text.trim();
+    if (emailOrPhone.isEmpty || !emailOrPhone.contains('@')) {
+      setState(() => _errorMsg = 'Enter a valid email to reset password.');
+      return;
+    }
+    setState(() { _isLoading = true; _errorMsg = null; });
+    try {
+      await AuthService.instance.resetPassword(emailOrPhone);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset email sent!')),
       );
     } catch (e) {
       setState(() => _errorMsg = e.toString()
@@ -73,11 +114,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: AppColors.sage,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(Icons.spa_outlined,
-                            color: Colors.white, size: 30),
+                        child: Center(
+                          child: SvgPicture.asset(
+                            'assets/SVG/medi-care-logo.svg',
+                            width: 44,
+                            height: 44,
+                            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      Text('MedHelp',
+                      Text('Medi Care',
                           style: Theme.of(context).textTheme.headlineMedium),
                       const SizedBox(height: 4),
                       const Text('Welcome back',
@@ -102,15 +149,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
                 // ── fields ─────────────────────────────────────────────
-                const FieldLabel('Email Address'),
+                const FieldLabel('Email or Phone Number'),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   decoration:
-                      const InputDecoration(hintText: 'you@example.com'),
+                      const InputDecoration(hintText: 'you@example.com or +1234567890'),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Required';
-                    if (!v.contains('@')) return 'Enter a valid email address';
+                    final val = v.trim();
+                    if (!val.contains('@') && RegExp(r'^\d+$').hasMatch(val)) {
+                      if (val.length != 10) return 'Enter exactly 10 digits';
+                    }
                     return null;
                   },
                 ),
@@ -135,7 +185,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (v) =>
                       (v == null || v.isEmpty) ? 'Required' : null,
                 ),
-                const SizedBox(height: 28),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _isLoading ? null : _forgotPassword,
+                    child: const Text('Forgot Password?', style: TextStyle(color: AppColors.sageDark, fontSize: 13)),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -146,6 +203,21 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2.4, color: Colors.white))
                         : const Text('Log In'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _googleSignIn,
+                    icon: const Icon(Icons.g_mobiledata, size: 28),
+                    label: const Text('Sign in with Google'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textDark,
+                      minimumSize: const Size.fromHeight(56),
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

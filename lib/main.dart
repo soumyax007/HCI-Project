@@ -2,27 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/language_selection_screen.dart';
 import 'screens/main_shell.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/app_settings.dart';
+import 'services/notification_service.dart';
+import 'services/reminder_store.dart';
 import 'theme/app_theme.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// SUPABASE CONFIG
-// 1. Go to https://supabase.com → New project
-// 2. Settings → API → copy Project URL and anon/public key
-// 3. Replace the two placeholder strings below
-// 4. Run the SQL from the README to create tables
-// ─────────────────────────────────────────────────────────────────────────────
-const _supabaseUrl  = 'https://opzhdqrogthmroqvlodo.supabase.co';  // e.g. https://xxxx.supabase.co
-const _supabaseKey  = 'sb_publishable_gFV1kaHPjPJq3CX2zcvAWw_koH7fHvf';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    // ignore: deprecated_member_use
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!, 
+  );
 
-  // Initialise Supabase
-  await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseKey);
-
-  // Load any previously saved session from shared_preferences
+  // 2. Restore previous session from SharedPreferences
   await AppSettings.instance.loadFromPrefs();
+
+  // 3. Initialise notification service (requests permissions, sets up channels)
+  await NotificationService.instance.init();
+
+  // 4. Load reminders (from Supabase if logged in, else local cache)
+  await ReminderStore.instance.load();
 
   runApp(const MedHelpApp());
 }
@@ -32,14 +34,13 @@ class MedHelpApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // If the user already completed sign-up in a previous session,
-    // skip the onboarding flow and go straight to the main app.
+    // Skip onboarding if user already has a valid session.
     final home = AppSettings.instance.isLoggedIn
         ? const MainShell()
         : const LanguageSelectionScreen();
 
     return MaterialApp(
-      title: 'MedHelp',
+      title: 'Medi Care',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
       home: home,

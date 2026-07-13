@@ -1,0 +1,35 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- soft, low-opacity shadow — matches the app's "soft shadows, no
+         heavy gradients" style guide -->
+    <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="0.5" stdDeviation="0.55"
+                    flood-color="#6D4C4C" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- Heart/shield mark — Brown Accent -->
+  <path
+    filter="url(#softShadow)"
+    d="M12,21.2 L10.6,19.94 C5.75,15.6 2.5,12.66 2.5,9.05 C2.5,6.1 4.79,3.8 7.71,3.8
+       C9.38,3.8 10.98,4.59 12,5.83 C13.02,4.59 14.62,3.8 16.29,3.8
+       C19.21,3.8 21.5,6.1 21.5,9.05 C21.5,12.66 18.25,15.6 13.4,19.94 L12,21.2 Z"
+    fill="#6D4C4C"/>
+
+  <!-- Capsule mark, tilted, sitting inside the heart -->
+  <g transform="rotate(-45 12 11)">
+    <!-- left cap (warm white) -->
+    <circle cx="9" cy="11" r="2.1" fill="#FFF7F6"/>
+    <!-- left half of barrel (warm white) -->
+    <rect x="9" y="8.9" width="3" height="4.2" fill="#FFF7F6"/>
+    <!-- right half of barrel (rose) -->
+    <rect x="12" y="8.9" width="3" height="4.2" fill="#FFD2CC"/>
+    <!-- right cap (rose) -->
+    <circle cx="15" cy="11" r="2.1" fill="#FFD2CC"/>
+    <!-- capsule outline -->
+    <path d="M9,8.9 a2.1,2.1 0 0 0 0,4.2 h6 a2.1,2.1 0 0 0 0,-4.2 z"
+          fill="none" stroke="#6D4C4C" stroke-width="0.45"/>
+    <!-- center divider -->
+    <line x1="12" y1="8.9" x2="12" y2="13.1" stroke="#6D4C4C" stroke-width="0.35"/>
+  </g>
+</svg>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_theme.dart';
 import 'signup_screen.dart';
 import 'login_screen.dart';
@@ -56,10 +57,17 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                   color: AppColors.sage,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.spa_outlined, color: Colors.white, size: 30),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/SVG/medi-care-logo.svg',
+                    width: 44,
+                    height: 44,
+                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
-              Text('MedHelp', style: Theme.of(context).textTheme.headlineMedium),
+              Text('Medi Care', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 6),
               Text('Your trusted medication companion',
                   style: Theme.of(context).textTheme.bodySmall),

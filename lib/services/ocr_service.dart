@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/translation_models.dart';
 
@@ -17,25 +18,24 @@ class OcrService {
   OcrService({http.Client? client}) : _client = client ?? http.Client();
 
   static const _endpoint = 'https://ratio11-medocr.hf.space/extract';
-  static const _timeout = Duration(seconds: 30);
+  static const _timeout  = Duration(seconds: 30);
 
   final http.Client _client;
 
-  /// Uploads [image] and returns the structured medicines the OCR model
-  /// extracted. Throws [OcrException] on any failure.
   Future<List<MedicineInput>> extractMedicines(XFile image) async {
-    // Always read as bytes — works on Web, mobile, and desktop.
-    final bytes = await image.readAsBytes();
+    final bytes    = await image.readAsBytes();
+    final filename = image.name.isNotEmpty ? image.name : 'prescription.jpg';
+    final ext      = filename.split('.').last.toLowerCase();
+    final mime     = ext == 'png' ? MediaType('image', 'png') : MediaType('image', 'jpeg');
 
     final request = http.MultipartRequest('POST', Uri.parse(_endpoint))
       ..headers['accept'] = 'application/json'
-      ..files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          bytes,
-          filename: image.name.isNotEmpty ? image.name : 'prescription.jpg',
-        ),
-      );
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+        contentType: mime,
+      ));
 
     http.Response response;
     try {
@@ -46,13 +46,14 @@ class OcrService {
     }
 
     if (response.statusCode != 200) {
-      throw OcrException(
-        'Scanning failed (HTTP ${response.statusCode}). '
-        'Please try a clearer photo.',
-      );
+      String detail = 'Scanning failed (HTTP ${response.statusCode}). Please try a clearer photo.';
+      try {
+        final err = jsonDecode(response.body) as Map<String, dynamic>;
+        if (err['detail'] != null) detail = err['detail'].toString();
+      } catch (_) {}
+      throw OcrException(detail);
     }
 
-    // Parse the structured response: { "medicines": [ {...}, ... ] }
     Map<String, dynamic> decoded;
     try {
       decoded = jsonDecode(response.body) as Map<String, dynamic>;
@@ -63,18 +64,17 @@ class OcrService {
     final rawList = decoded['medicines'] as List<dynamic>? ?? [];
     if (rawList.isEmpty) {
       throw OcrException(
-        'No medicines could be read from this photo. '
-        'Try retaking it with better lighting.',
+        'No medicines could be read from this photo. Try retaking it with better lighting.',
       );
     }
 
     return rawList
         .cast<Map<String, dynamic>>()
         .map((m) => MedicineInput(
-              name: m['name'] as String? ?? '',
+              name:      m['name']      as String? ?? '',
               frequency: m['frequency'] as String? ?? 'Not specified',
-              duration: m['duration'] as String? ?? 'Not specified',
-              timing: m['timing'] as String? ?? 'Not specified',
+              duration:  m['duration']  as String? ?? 'Not specified',
+              timing:    m['timing']    as String? ?? 'Not specified',
             ))
         .toList();
   }
